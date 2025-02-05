@@ -16,3 +16,6 @@ libs = ["lib"]
 gas_reports = ["*"]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+eth_rpc_url = "${RPC_URL}"
+etherscan_api_key = "${ETHERSCAN_API_KEY}"

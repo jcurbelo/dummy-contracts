@@ -2,17 +2,15 @@
 pragma solidity ^0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Counter} from "../src/Counter.sol";
 
-contract CounterScript is Script {
-    Counter public counter;
-
+contract DeployScript is Script {
     function setUp() public {}
 
     function run() public {
-        vm.startBroadcast();
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        counter = new Counter();
+        // Start broadcasting transactions from the deployer account
+        vm.startBroadcast(deployerPrivateKey);
 
         vm.stopBroadcast();
     }

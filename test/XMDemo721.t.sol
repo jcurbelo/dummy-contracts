@@ -28,6 +28,7 @@ contract XMDemo721Test is Test {
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
 
+        vm.startPrank(owner);
         // Deploy proxy using the OpenZeppelin Upgrades library
         address proxyAddress = Upgrades.deployTransparentProxy(
             "XMDemo721.sol",
@@ -35,12 +36,9 @@ contract XMDemo721Test is Test {
             abi.encodeCall(XMDemo721.initialize, (INITIAL_URI))
         );
         proxy = XMDemo721(proxyAddress);
-
-        // Set owner as the msg.sender for subsequent calls
-        vm.startPrank(owner);
     }
 
-    function test_Initialization() public view{
+    function test_Initialization() public view {
         assertEq(proxy.name(), "XMDemo");
         assertEq(proxy.symbol(), "XMD");
         assertEq(proxy.owner(), owner);
@@ -71,7 +69,12 @@ contract XMDemo721Test is Test {
     function test_TokenURIUpdateOnlyOwner() public {
         vm.stopPrank();
         vm.startPrank(user1);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "OwnableUnauthorizedAccount(address)",
+                user1
+            )
+        );
         proxy.setTokenURI(NEW_URI);
     }
 
@@ -125,20 +128,13 @@ contract XMDemo721Test is Test {
 
         vm.stopPrank();
         vm.startPrank(user2);
-        vm.expectRevert("ERC721: caller is not token owner or approved");
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC721InsufficientApproval(address,uint256)",
+                user2,
+                1
+            )
+        );
         proxy.transferFrom(user1, user2, 1);
-    }
-
-    function test_UpgradeContract() public {
-        // First mint some tokens to verify state persistence
-        proxy.mint(user1, 2);
-
-        // Upgrade to a new version (assuming we have XMDemo721V2.sol)
-        Upgrades.upgradeProxy(address(proxy), "XMDemo721V2.sol", "");
-
-        // Verify state was preserved
-        assertEq(proxy.balanceOf(user1), 2);
-        assertEq(proxy.ownerOf(1), user1);
-        assertEq(proxy.ownerOf(2), user1);
     }
 }

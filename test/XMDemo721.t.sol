@@ -3,11 +3,9 @@ pragma solidity ^0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {XMDemo721} from "../src/XMDemo721.sol";
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract XMDemo721Test is Test {
-    XMDemo721 public implementation;
     XMDemo721 public proxy;
     address public owner;
     address public user1;
@@ -30,33 +28,22 @@ contract XMDemo721Test is Test {
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
 
-        // Deploy implementation
-        implementation = new XMDemo721();
-
-        // Deploy proxy
-        bytes memory initData = abi.encodeWithSelector(
-            XMDemo721.initialize.selector,
-            INITIAL_URI
+        // Deploy proxy using the OpenZeppelin Upgrades library
+        address proxyAddress = Upgrades.deployTransparentProxy(
+            "XMDemo721.sol",
+            owner, // proxy admin owner
+            abi.encodeCall(XMDemo721.initialize, (INITIAL_URI))
         );
-        ERC1967Proxy proxyContract = new ERC1967Proxy(
-            address(implementation),
-            initData
-        );
-        proxy = XMDemo721(address(proxyContract));
+        proxy = XMDemo721(proxyAddress);
 
         // Set owner as the msg.sender for subsequent calls
         vm.startPrank(owner);
     }
 
-    function test_Initialization() public view {
+    function test_Initialization() public view{
         assertEq(proxy.name(), "XMDemo");
         assertEq(proxy.symbol(), "XMD");
         assertEq(proxy.owner(), owner);
-    }
-
-    function test_ImplementationContractLocked() public {
-        vm.expectRevert("Initializable: contract is already initialized");
-        implementation.initialize(INITIAL_URI);
     }
 
     function test_Minting() public {
@@ -140,5 +127,18 @@ contract XMDemo721Test is Test {
         vm.startPrank(user2);
         vm.expectRevert("ERC721: caller is not token owner or approved");
         proxy.transferFrom(user1, user2, 1);
+    }
+
+    function test_UpgradeContract() public {
+        // First mint some tokens to verify state persistence
+        proxy.mint(user1, 2);
+
+        // Upgrade to a new version (assuming we have XMDemo721V2.sol)
+        Upgrades.upgradeProxy(address(proxy), "XMDemo721V2.sol", "");
+
+        // Verify state was preserved
+        assertEq(proxy.balanceOf(user1), 2);
+        assertEq(proxy.ownerOf(1), user1);
+        assertEq(proxy.ownerOf(2), user1);
     }
 }

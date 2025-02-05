@@ -1,6 +1,6 @@
 [profile.default]
 solc = "0.8.28"
-ffi = false
+ffi = true
 fuzz_runs = 256
 optimizer = true
 optimizer_runs = 3000
@@ -8,6 +8,9 @@ via_ir = true
 verbosity = 2
 src = "src"
 out = "out"
+ast = true
+build_info = true
+extra_output = ["storageLayout"]
 libs = ["lib"]
 
 gas_reports = ["*"]
